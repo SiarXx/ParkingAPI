@@ -1,0 +1,10 @@
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace ParkingAPI.Data
+{
+    public class DataContext : DbContext 
+    {
+        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
+        public DbSet<ParkingSpot> ParkingSpots { get; set; }
+    }
+}
