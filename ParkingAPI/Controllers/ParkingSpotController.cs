@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ParkingAPI.Models;
 
 namespace ParkingAPI.Controllers
 {
@@ -17,26 +17,30 @@ namespace ParkingAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<ParkingSpot>>> Get()
+        public async Task<ActionResult<List<ParkingSpot>>> GetAllParkingSpots()
         {
 
             return Ok(await _context.ParkingSpots.ToListAsync());
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ParkingSpot>> Get(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ParkingSpot>> GetParkingSpot(int id)
         {
             var spot = await _context.ParkingSpots.FindAsync(id);
             if (spot == null)
+            {
                 return BadRequest("Parking spot bot found.");
+            }
+
             return Ok(spot);
         }
 
         [HttpPost]
         public async Task<ActionResult<List<ParkingSpot>>> AddParkingSpot(ParkingSpot spot)
         {
-            _context.ParkingSpots.Add(spot);
-            await _context.SaveChangesAsync();
+            _ = await _context.ParkingSpots.AddAsync(spot);
+            _ = await _context.SaveChangesAsync();
+
             return Ok(await _context.ParkingSpots.ToListAsync());
         }
 
@@ -45,13 +49,16 @@ namespace ParkingAPI.Controllers
         {
             var spot = await _context.ParkingSpots.FindAsync(request.Id);
             if (spot == null)
+            {
                 return BadRequest("Parking spot bot found.");
+            }
 
             spot.Name = request.Name;
-            spot.isOccupied = request.isOccupied;
-            spot.isReserved = request.isReserved;
+            spot.IsOccupied = request.IsOccupied;
+            spot.IsReserved = request.IsReserved;
 
-            await _context.SaveChangesAsync();
+            _ = await _context.SaveChangesAsync();
+
             return Ok(await _context.ParkingSpots.ToListAsync());
         }
 
@@ -60,11 +67,14 @@ namespace ParkingAPI.Controllers
         {
             var spot = await _context.ParkingSpots.FindAsync(id);
             if (spot == null)
+            {
                 return BadRequest("Parking spot bot found.");
+            }
 
-            _context.ParkingSpots.Remove(spot);
-            await _context.SaveChangesAsync();
-            return Ok(await _context.ParkingSpots.ToListAsync());
+            _ = _context.ParkingSpots.Remove(spot);
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(spot);
         }
     }
 }

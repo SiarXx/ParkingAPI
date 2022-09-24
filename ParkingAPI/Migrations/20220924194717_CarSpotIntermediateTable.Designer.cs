@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ParkingAPI.Data;
 
@@ -11,9 +12,10 @@ using ParkingAPI.Data;
 namespace ParkingAPI.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20220924194717_CarSpotIntermediateTable")]
+    partial class CarSpotIntermediateTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,6 +32,9 @@ namespace ParkingAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
+                    b.Property<int?>("CarSpotId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsParked")
                         .HasColumnType("bit");
 
@@ -41,9 +46,6 @@ namespace ParkingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ParkedSpotId")
-                        .HasColumnType("int");
-
                     b.Property<int>("PersonId")
                         .HasColumnType("int");
 
@@ -53,13 +55,34 @@ namespace ParkingAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ParkedSpotId")
-                        .IsUnique()
-                        .HasFilter("[ParkedSpotId] IS NOT NULL");
-
                     b.HasIndex("PersonId");
 
                     b.ToTable("Cars");
+                });
+
+            modelBuilder.Entity("ParkingAPI.Models.CarSpot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("CarId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpotId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarId")
+                        .IsUnique();
+
+                    b.HasIndex("SpotId")
+                        .IsUnique();
+
+                    b.ToTable("CarSpots");
                 });
 
             modelBuilder.Entity("ParkingAPI.Models.ParkingSpot", b =>
@@ -70,7 +93,7 @@ namespace ParkingAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int?>("CarId")
+                    b.Property<int?>("CarSpotId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsOccupied")
@@ -114,10 +137,6 @@ namespace ParkingAPI.Migrations
 
             modelBuilder.Entity("ParkingAPI.Models.Car", b =>
                 {
-                    b.HasOne("ParkingAPI.Models.ParkingSpot", "ParkedSpot")
-                        .WithOne("ParkedCar")
-                        .HasForeignKey("ParkingAPI.Models.Car", "ParkedSpotId");
-
                     b.HasOne("ParkingAPI.Models.Person", "Owner")
                         .WithMany()
                         .HasForeignKey("PersonId")
@@ -125,13 +144,35 @@ namespace ParkingAPI.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
 
-                    b.Navigation("ParkedSpot");
+            modelBuilder.Entity("ParkingAPI.Models.CarSpot", b =>
+                {
+                    b.HasOne("ParkingAPI.Models.Car", "Car")
+                        .WithOne("CarSpot")
+                        .HasForeignKey("ParkingAPI.Models.CarSpot", "CarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingAPI.Models.ParkingSpot", "ParkingSpot")
+                        .WithOne("CarSpot")
+                        .HasForeignKey("ParkingAPI.Models.CarSpot", "SpotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Car");
+
+                    b.Navigation("ParkingSpot");
+                });
+
+            modelBuilder.Entity("ParkingAPI.Models.Car", b =>
+                {
+                    b.Navigation("CarSpot");
                 });
 
             modelBuilder.Entity("ParkingAPI.Models.ParkingSpot", b =>
                 {
-                    b.Navigation("ParkedCar");
+                    b.Navigation("CarSpot");
                 });
 #pragma warning restore 612, 618
         }
