@@ -6,7 +6,7 @@ namespace ParkingAPI.Models
     public class ParkingSpot
     {
         public int Id { get; set; }
-        public string Name { get; set; } = "string";
+        public string Name { get; set; } = string.Empty;
         public bool IsOccupied { get; set; }
         public bool IsReserved { get; set; }
         public Car? ParkedCar { get; set; }

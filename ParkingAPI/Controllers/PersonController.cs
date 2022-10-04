@@ -18,7 +18,9 @@ namespace ParkingAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<List<Person>>> GetAllPersons()
         {
-            return Ok(await _context.Persons.ToListAsync());
+            var persons = await _context.Persons.ToListAsync();
+
+            return Ok(persons);
         }
 
         [HttpGet("id")]
@@ -46,10 +48,77 @@ namespace ParkingAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<List<Person>>> AddPerson(Person person)
         {
-            _context.Persons.Add(person);
-            await _context.SaveChangesAsync();
+            _ = await _context.Persons.AddAsync(person);
+            _ = await _context.SaveChangesAsync();
+            var persons = await _context.Persons.ToListAsync();
 
-            return Ok(await _context.Persons.ToListAsync());
+            return Ok(persons);
+        }
+
+        [HttpPut("Reserve Spot{personId:int}/{spotId:int}")]
+        public async Task<ActionResult<List<ParkingSpot>>> ReserveParkingSpot(int personId, int spotId)
+        {
+            var person = await _context.Persons
+                .Include(p => p.ReservedSpots)
+                .FirstOrDefaultAsync(p => p.Id == personId);
+            
+            if(person is null)
+            {
+                return BadRequest("No Person found.");
+            }
+
+            var parkingSpot = await _context.ParkingSpots.FindAsync(spotId);
+
+            if(parkingSpot is null)
+            {
+                return BadRequest("No parking spot found.");
+            }
+            else if(parkingSpot.IsReserved)
+            {
+                return BadRequest("Parking spot is already reserved.");
+            }
+            else if(parkingSpot.IsOccupied)
+            {
+                return BadRequest("Parking spot is occupied");
+            }
+
+            parkingSpot.IsReserved = true;
+            person.ReservedSpots.Add(parkingSpot);
+
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(person.ReservedSpots);
+        }
+
+        [HttpPut("Revoke Spot{personId:int}/{spotId:int}")]
+        public async Task<ActionResult<List<ParkingSpot>>> RevokeParkingSpot(int personId, int spotId)
+        {
+            var person = await _context.Persons
+                .Include(p => p.ReservedSpots)
+                .FirstOrDefaultAsync(p => p.Id == personId);
+
+            if (person is null)
+            {
+                return BadRequest("No Person found.");
+            }
+
+            var parkingSpot = await _context.ParkingSpots.FindAsync(spotId);
+
+            if (parkingSpot is null)
+            {
+                return BadRequest("No parking spot found.");
+            }
+            else if (!parkingSpot.IsReserved)
+            {
+                return BadRequest("Parking spot is not reserved reserved.");
+            }
+
+            parkingSpot.IsReserved = false;
+            person.ReservedSpots.Remove(parkingSpot);
+
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(person.ReservedSpots);
         }
     }
 }

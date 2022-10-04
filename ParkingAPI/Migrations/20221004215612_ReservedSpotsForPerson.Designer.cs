@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ParkingAPI.Data;
 
@@ -11,9 +12,10 @@ using ParkingAPI.Data;
 namespace ParkingAPI.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20221004215612_ReservedSpotsForPerson")]
+    partial class ReservedSpotsForPerson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,14 +67,14 @@ namespace ParkingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("PersonId")
+                    b.Property<int?>("OwnerId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CarId");
 
-                    b.HasIndex("PersonId");
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("ParkingSpots");
                 });
@@ -116,9 +118,11 @@ namespace ParkingAPI.Migrations
                         .WithMany()
                         .HasForeignKey("CarId");
 
-                    b.HasOne("ParkingAPI.Models.Person", null)
+                    b.HasOne("ParkingAPI.Models.Person", "Owner")
                         .WithMany("ReservedSpots")
-                        .HasForeignKey("PersonId");
+                        .HasForeignKey("OwnerId");
+
+                    b.Navigation("Owner");
 
                     b.Navigation("ParkedCar");
                 });

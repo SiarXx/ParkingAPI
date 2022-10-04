@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParkingAPI.Models;
+using ParkingAPI.Properties;
 
 namespace ParkingAPI.Controllers
 {
@@ -19,17 +20,23 @@ namespace ParkingAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ParkingSpot>>> GetAllParkingSpots()
         {
+            var spots = await _context.ParkingSpots
+                .Include(p => p.ParkedCar)
+                .ToListAsync();
 
-            return Ok(await _context.ParkingSpots.ToListAsync());
+            return Ok(spots);
         }
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<ParkingSpot>> GetParkingSpot(int id)
         {
-            var spot = await _context.ParkingSpots.FindAsync(id);
+            var spot = await _context.ParkingSpots
+                .Include(p => p.ParkedCar)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
             if (spot == null)
             {
-                return BadRequest("Parking spot bot found.");
+                return BadRequest(ErrorMessages.ParkingSpotController_ParkingSpotNotFound);
             }
 
             return Ok(spot);
@@ -75,6 +82,92 @@ namespace ParkingAPI.Controllers
             _ = await _context.SaveChangesAsync();
 
             return Ok(spot);
+        }
+
+        [HttpPut("ParkCar{spotId:int}/{carId:int}")]
+        public async Task<ActionResult<ParkingSpot>> ParkCarOn(int spotId, int carId)
+        {
+            var spot = await _context.ParkingSpots.FindAsync(spotId);
+            var car = await _context.Cars
+                .Include(c => c.Owner)
+                .ThenInclude(o => o.ReservedSpots)
+                .FirstOrDefaultAsync(c => c.Id == carId);
+            var isValid = ValidateSpotForCar(spot, car, out string errorMessage);
+
+            if (!isValid)
+            {
+                return BadRequest(errorMessage);
+            }
+
+            spot.IsOccupied = true;
+            spot.ParkedCar = car;
+            spot.CarId = car.Id;
+
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(spot);
+        }
+
+        [HttpPut("FreeParkingSpot{spotId:int}")]
+        public async Task<ActionResult<ParkingSpot>> FreeParkingSpot(int spotId)
+        {
+            var spot = await _context.ParkingSpots.FindAsync(spotId);
+
+            if(spot is null)
+            {
+                return BadRequest("Parking spot not found.");
+            }
+            
+            if (!spot.IsOccupied)
+            {
+                return BadRequest("Parking spot is not Occupied.");
+            }
+
+            spot.IsOccupied = false;
+            spot.CarId = null;
+            spot.ParkedCar = null;
+
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(spot);
+        }
+
+        private static bool ValidateSpotForCar(ParkingSpot spot, Car car, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            bool isValid = true;
+
+            if (spot is null)
+            {
+                errorMessage = "Parking spot not found.";
+
+                isValid = false;
+            }
+            else if (car is null)
+            {
+                errorMessage = "Car not found.";
+
+                isValid = false;
+            }
+            else if (spot.IsOccupied)
+            {
+                errorMessage = "Parking spot is occupied.";
+
+                isValid = false;
+            }
+            else if (spot.IsReserved)
+            {
+                var carOwner = car.Owner;
+                
+                if(carOwner is null || (_ = carOwner.ReservedSpots.FirstOrDefault(s => s.Id == spot.Id)) is null)
+                {
+                    errorMessage = "Parking spot is Reserved";
+
+                    isValid = false;
+                }
+            }
+
+            return isValid;
         }
     }
 }
